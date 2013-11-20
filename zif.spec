@@ -110,7 +110,8 @@ Bashowe dopełnianie parametrów dla polecenia zif.
 %{__autoheader}
 %{__automake}
 %configure \
-	--disable-silent-rules
+	--disable-silent-rules \
+	--with-html-dir=%{_gtkdocdir}
 #	--enable-gtk-doc is broken (as of 0.2.3)
 
 %{__make}
@@ -134,7 +135,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -f Zif.lang
 %defattr(644,root,root,755)
-%doc README AUTHORS NEWS
+%doc AUTHORS NEWS README
 %attr(755,root,root) %{_bindir}/zif
 %attr(755,root,root) %{_libdir}/libzif.so.*.*.*
 %attr(755,root,root) %ghost %{_libdir}/libzif.so.3
