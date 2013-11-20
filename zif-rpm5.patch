@@ -198,21 +198,21 @@
 +}
 +
 +#endif /* RPMORG_COMPAT_H */
---- zif-0.2.3/libzif/zif-store-local.c.orig	2011-09-05 12:53:07.000000000 +0200
-+++ zif-0.2.3/libzif/zif-store-local.c	2013-11-17 20:36:08.047378734 +0100
-@@ -34,7 +34,7 @@
- #include <string.h>
+--- zif-0.3.6/libzif/zif-store-local.c.orig	2013-11-20 19:34:57.489988513 +0100
++++ zif-0.3.6/libzif/zif-store-local.c	2013-11-20 19:36:28.343318034 +0100
+@@ -35,7 +35,7 @@
  
  #include <glib.h>
+ #include <signal.h>
 -#include <rpm/rpmlib.h>
 +#include "rpmorg-compat.h"
  #include <rpm/rpmdb.h>
  #include <rpm/rpmts.h>
  #include <fcntl.h>
-@@ -244,16 +244,7 @@ zif_store_local_load (ZifStore *store, Z
- 
+@@ -402,16 +402,7 @@ zif_store_local_load (ZifStore *store, Z
  	/* get list */
  	ts = rpmtsCreate ();
+ 	rpmtsSetVSFlags (ts, RPMVSF_NOHDRCHK);
 -	rc = rpmtsSetRootDir (ts, local->priv->prefix);
 -	if (rc < 0) {
 -		ret = FALSE;
@@ -227,11 +227,11 @@
  	g_debug ("using rpmdb at %s", local->priv->prefix);
  	mi = rpmtsInitIterator (ts, RPMDBI_PACKAGES, NULL, 0);
  	if (mi == NULL)
---- zif-0.2.3/libzif/zif-transaction.c.orig	2011-09-05 12:53:07.000000000 +0200
-+++ zif-0.2.3/libzif/zif-transaction.c	2013-11-19 19:24:28.350307447 +0100
-@@ -51,12 +51,12 @@
- #include <glib/gstdio.h>
+--- zif-0.3.6/libzif/zif-transaction.c.orig	2013-05-08 09:47:45.000000000 +0200
++++ zif-0.3.6/libzif/zif-transaction.c	2013-11-20 20:08:47.926569970 +0100
+@@ -52,12 +52,12 @@
  #include <fcntl.h>
+ #include <sys/utsname.h>
  
 +#include "rpmorg-compat.h"
  #include <rpm/rpmdb.h>
@@ -242,14 +242,16 @@
 -#include <rpm/rpmkeyring.h>
 +#include <rpm/rpmpgp.h>
  
- #include "zif-array.h"
  #include "zif-config.h"
-@@ -3052,15 +3052,12 @@ out:
+ #include "zif-db.h"
+@@ -4295,17 +4295,14 @@ out:
   * zif_transaction_add_public_key_to_rpmdb:
   **/
  static gboolean
--zif_transaction_add_public_key_to_rpmdb (rpmKeyring keyring, const gchar *filename, GError **error)
-+zif_transaction_add_public_key_to_rpmdb (const rpmts ts, const gchar *filename, GError **error)
+-zif_transaction_add_public_key_to_rpmdb (rpmKeyring keyring,
++zif_transaction_add_public_key_to_rpmdb (const rpmts ts,
+ 					 const gchar *filename,
+ 					 GError **error)
  {
  	gboolean ret = TRUE;
 -	gchar *data = NULL;
@@ -261,7 +263,7 @@
  	uint8_t *pkt = NULL;
  
  	/* ignore symlinks and directories */
-@@ -3070,12 +3067,8 @@ zif_transaction_add_public_key_to_rpmdb
+@@ -4315,12 +4312,8 @@ zif_transaction_add_public_key_to_rpmdb
  		goto out;
  
  	/* get data */
@@ -275,7 +277,7 @@
  	if (armor < 0) {
  		ret = FALSE;
  		g_set_error (error,
-@@ -3098,7 +3091,7 @@ zif_transaction_add_public_key_to_rpmdb
+@@ -4343,7 +4336,7 @@ zif_transaction_add_public_key_to_rpmdb
  	}
  
  	/* test each one */
@@ -284,12 +286,12 @@
  	if (pubkey == NULL) {
  		ret = FALSE;
  		g_set_error (error,
-@@ -3107,19 +3100,19 @@ zif_transaction_add_public_key_to_rpmdb
+@@ -4352,19 +4345,19 @@ zif_transaction_add_public_key_to_rpmdb
  			     "failed to parse public key for %s",
  			     filename);
  		goto out;
 -	}
-+	}*/
++	} */
  
  	/* does the key exist in the keyring */
 -	dig = rpmPubkeyDig (pubkey);
@@ -300,38 +302,36 @@
  		g_debug ("%s is already present", filename);
  		goto out;
 -	}
-+	}*/
++	} */
  
  	/* add to rpmdb automatically, without a prompt */
 -	rc = rpmKeyringAddKey (keyring, pubkey);
-+	rc = rpmcliImportPubkey(ts, pkt, len);
- 	if (rc != 0) {
- 		ret = FALSE;
- 		g_set_error (error,
-@@ -3137,11 +3130,10 @@ zif_transaction_add_public_key_to_rpmdb
++	rc = rpmcliImportPubkey (ts, pkt, len);
+ 	if (rc == 1) {
+ 		ret = TRUE;
+ 		g_debug ("%s is already added", filename);
+@@ -4386,11 +4379,6 @@ zif_transaction_add_public_key_to_rpmdb
  out:
  	if (pkt != NULL)
  		free (pkt); /* yes, free() */
 -	if (pubkey != NULL)
-+/*	if (pubkey != NULL)
- 		rpmPubkeyFree (pubkey);
- 	if (dig != NULL)
+-		rpmPubkeyFree (pubkey);
+-	if (dig != NULL)
 -		pgpFreeDig (dig);
 -	g_free (data);
-+		pgpFreeDig (dig); */
  	return ret;
  }
  
-@@ -3149,7 +3141,7 @@ out:
+@@ -4398,7 +4386,7 @@ out:
   * zif_transaction_add_public_keys_to_rpmdb:
   **/
  static gboolean
--zif_transaction_add_public_keys_to_rpmdb (rpmKeyring keyring, GError **error)
-+zif_transaction_add_public_keys_to_rpmdb (rpmts ts, GError **error)
+-zif_transaction_add_public_keys_to_rpmdb (rpmKeyring keyring,
++zif_transaction_add_public_keys_to_rpmdb (rpmts ts,
+ 					  GError **error)
  {
  	GDir *dir;
- 	const gchar *filename;
-@@ -3168,7 +3160,7 @@ zif_transaction_add_public_keys_to_rpmdb
+@@ -4418,7 +4406,7 @@ zif_transaction_add_public_keys_to_rpmdb
  		if (filename == NULL)
  			break;
  		path_tmp = g_build_filename (gpg_dir, filename, NULL);
@@ -340,16 +340,52 @@
  							       path_tmp,
  							       error);
  		g_free (path_tmp);
-@@ -3184,7 +3176,7 @@ out:
+@@ -4433,7 +4421,7 @@ out:
+  * zif_transaction_obtain_key_for_package:
+  **/
+ static gboolean
+-zif_transaction_obtain_key_for_package (ZifTransaction *transaction,
++zif_transaction_obtain_key_for_package (rpmts ts, ZifTransaction *transaction,
+ 				        ZifPackage *package,
+ 				        ZifState *state,
+ 				        GError **error)
+@@ -4443,7 +4431,6 @@ zif_transaction_obtain_key_for_package (
+ 	gchar *filename_tmp = NULL;
+ 	gchar **pubkey;
+ 	guint i;
+-	rpmKeyring keyring = NULL;
+ 	ZifDownload *download = NULL;
+ 	ZifState *state_local;
+ 	ZifStoreRemote *remote;
+@@ -4501,8 +4488,7 @@ zif_transaction_obtain_key_for_package (
+ 			goto out;
+ 
+ 		/* import it */
+-		keyring = rpmtsGetKeyring (transaction->priv->ts, 1);
+-		ret = zif_transaction_add_public_key_to_rpmdb (keyring,
++		ret = zif_transaction_add_public_key_to_rpmdb (ts,
+ 							       filename_tmp,
+ 							       error);
+ 		if (!ret)
+@@ -4515,8 +4501,6 @@ zif_transaction_obtain_key_for_package (
+ 	}
+ out:
+ 	g_free (filename_tmp);
+-	if (keyring != NULL)
+-		rpmKeyringFree (keyring);
+ 	if (download != NULL)
+ 		g_object_unref (download);
+ 	return ret;
+@@ -4527,7 +4511,7 @@ out:
   **/
  static gboolean
  zif_transaction_prepare_ensure_trusted (ZifTransaction *transaction,
 -					rpmKeyring keyring,
 +					rpmts ts,
  					ZifPackage *package,
+ 					ZifState *state,
  					GError **error)
- {
-@@ -3226,7 +3218,7 @@ zif_transaction_prepare_ensure_trusted (
+@@ -4580,7 +4564,7 @@ zif_transaction_prepare_ensure_trusted (
  	zif_package_set_compare_mode (package_tmp, compare_mode);
  
  	/* get RSA key */
@@ -358,7 +394,7 @@
  	h = zif_package_local_get_header (ZIF_PACKAGE_LOCAL (package_tmp));
  	rc = headerGet (h,
  			RPMTAG_RSAHEADER,
-@@ -3248,7 +3240,7 @@ zif_transaction_prepare_ensure_trusted (
+@@ -4602,7 +4586,7 @@ zif_transaction_prepare_ensure_trusted (
  	}
  
  	/* make it into a digest */
@@ -367,7 +403,7 @@
  	rc = pgpPrtPkts (td->data, td->count, dig, 0);
  	if (rc != 0) {
  		g_set_error (error,
-@@ -3260,7 +3252,7 @@ zif_transaction_prepare_ensure_trusted (
+@@ -4614,7 +4598,7 @@ zif_transaction_prepare_ensure_trusted (
  	}
  
  	/* does the key exist in the keyring */
@@ -376,7 +412,7 @@
  	if (rc == RPMRC_FAIL) {
  		g_set_error_literal (error,
  				     ZIF_TRANSACTION_ERROR,
-@@ -3275,12 +3267,12 @@ zif_transaction_prepare_ensure_trusted (
+@@ -4629,17 +4613,17 @@ zif_transaction_prepare_ensure_trusted (
  
  		/* only do this once, even if it fails */
  		transaction->priv->auto_added_pubkeys = TRUE;
@@ -387,11 +423,26 @@
  
  		/* try again, as we might have the key now */
 -		rc = rpmKeyringLookup (keyring, dig);
-+		rc = rpmtsFindPubkey(ts, dig);
++		rc = rpmtsFindPubkey (ts, dig);
+ 	}
+ 
+ 	/* obtain repo keys automatically */
+ 	if (rc == RPMRC_NOKEY && ZIF_IS_PACKAGE_REMOTE (package)) {
+-		ret = zif_transaction_obtain_key_for_package (transaction,
++		ret = zif_transaction_obtain_key_for_package (ts, transaction,
+ 							      package,
+ 							      state,
+ 							      &error_local);
+@@ -4657,7 +4641,7 @@ zif_transaction_prepare_ensure_trusted (
+ 		}
+ 
+ 		/* try again, as we might have the key now */
+-		rc = rpmKeyringLookup (keyring, dig);
++		rc = rpmtsFindPubkey (ts, dig);
  	}
  
  	/* set trusted */
-@@ -3297,10 +3289,10 @@ out:
+@@ -4674,10 +4658,10 @@ out:
  	if (package_tmp != NULL)
  		g_object_unref (package_tmp);
  	if (dig != NULL)
@@ -404,32 +455,32 @@
  	}
  	return ret;
  }
-@@ -3327,7 +3319,6 @@ zif_transaction_prepare (ZifTransaction
+@@ -4706,7 +4690,6 @@ zif_transaction_prepare (ZifTransaction
  	GError *error_local = NULL;
  	GPtrArray *download = NULL;
  	guint i;
 -	rpmKeyring keyring = NULL;
- 	ZifPackage *package;
  	ZifPackage *package_tmp;
  	ZifState *state_local;
-@@ -3476,7 +3467,6 @@ skip:
+ 	ZifState *state_loop;
+@@ -4843,7 +4826,6 @@ skip:
  					   "gpgcheck", NULL);
  	localpkg_gpgcheck = zif_config_get_boolean (priv->config,
  						    "localpkg_gpgcheck", NULL);
 -	keyring = rpmtsGetKeyring (transaction->priv->ts, 1);
- 	for (i=0; i<priv->install->len; i++) {
- 		package_tmp = g_ptr_array_index (priv->install, i);
- 
-@@ -3492,7 +3482,7 @@ skip:
- 
+ 	state_local = zif_state_get_child (state);
+ 	zif_state_set_number_steps (state_local, priv->install->len);
+ 	for (i = 0; i < priv->install->len; i++) {
+@@ -4862,7 +4844,7 @@ skip:
  		/* do the check */
+ 		state_loop = zif_state_get_child (state_local);
  		ret = zif_transaction_prepare_ensure_trusted (transaction,
 -							      keyring,
 +							      transaction->priv->ts,
  							      package_tmp,
+ 							      state_loop,
  							      error);
- 		if (!ret)
-@@ -3509,8 +3499,6 @@ skip_self_check:
+@@ -4885,8 +4867,6 @@ skip_self_check:
  	/* success */
  	priv->state = ZIF_TRANSACTION_STATE_PREPARED;
  out:
@@ -438,7 +489,7 @@
  	if (download != NULL)
  		g_ptr_array_unref (download);
  	return ret;
-@@ -4267,6 +4255,18 @@ zif_transaction_get_problem_str (rpmProb
+@@ -5880,6 +5860,18 @@ zif_transaction_get_problem_str (rpmProb
  				       pkg_nevr_alt);
  		break;
  #endif
@@ -457,7 +508,7 @@
  	}
  	return str;
  }
-@@ -4323,10 +4323,13 @@ zif_transaction_look_for_problems (ZifTr
+@@ -5936,7 +5928,7 @@ zif_transaction_look_for_problems (ZifTr
  out:
  	if (string != NULL)
  		g_string_free (string, TRUE);
@@ -466,13 +517,17 @@
  	return ret;
  }
  
+@@ -6113,6 +6105,9 @@ out:
+ 	return ret;
+ }
+ 
 +/* available in rpmts.h only if _RPMTS_INTERNAL */
 +void rpmtsSetScriptFd(rpmts ts, /*@null@*/ FD_t scriptFd);
 +
  /**
-  * zif_transaction_commit:
+  * zif_transaction_commit_full:
   * @transaction: A #ZifTransaction
-@@ -4409,16 +4412,7 @@ zif_transaction_commit (ZifTransaction *
+@@ -6218,16 +6213,7 @@ zif_transaction_commit_full (ZifTransact
  	commit->transaction = transaction;
  	commit->timer = g_timer_new ();
  	prefix = zif_store_local_get_prefix (ZIF_STORE_LOCAL (priv->store_local));
@@ -490,15 +545,15 @@
  	rpmtsSetNotifyCallback (transaction->priv->ts,
  				zif_transaction_ts_progress_cb,
  				commit);
-@@ -4757,7 +4751,7 @@ zif_transaction_finalize (GObject *objec
- 	transaction = ZIF_TRANSACTION (object);
+@@ -6624,7 +6610,7 @@ zif_transaction_finalize (GObject *objec
  
+ 	g_free (transaction->priv->cmdline);
  	if (transaction->priv->ts != NULL)
 -		rpmtsFree (transaction->priv->ts);
 +		transaction->priv->ts = rpmtsFree (transaction->priv->ts);
  	g_object_unref (transaction->priv->db);
+ 	g_object_unref (transaction->priv->history);
  	g_object_unref (transaction->priv->config);
- 	g_ptr_array_unref (transaction->priv->install);
 --- zif-0.2.3/libzif/zif-utils.c.orig	2011-06-29 10:46:17.000000000 +0200
 +++ zif-0.2.3/libzif/zif-utils.c	2013-11-19 19:47:55.886915045 +0100
 @@ -30,8 +30,10 @@
@@ -513,8 +568,8 @@
  #include <rpm/rpmdb.h>
  #include <archive.h>
  #include <archive_entry.h>
---- zif-0.2.3/libzif/zif-config.c.orig	2011-09-05 12:53:07.000000000 +0200
-+++ zif-0.2.3/libzif/zif-config.c	2013-11-19 20:23:49.663491326 +0100
+--- zif-0.3.6/libzif/zif-config.c.orig	2013-05-08 09:33:04.000000000 +0200
++++ zif-0.3.6/libzif/zif-config.c	2013-11-20 19:38:52.996645297 +0100
 @@ -41,7 +41,7 @@
  #include <string.h>
  
@@ -523,18 +578,18 @@
 +#include <rpm/rpm46compat.h>
  
  #include "zif-config.h"
- #include "zif-utils.h"
-@@ -876,7 +876,7 @@ zif_config_class_init (ZifConfigClass *k
+ #include "zif-utils-private.h"
+@@ -916,7 +916,7 @@ zif_config_class_init (ZifConfigClass *k
  static void
  zif_config_init (ZifConfig *config)
  {
 -	const gchar *value;
 +	const char *value;
  
- 	config->priv = ZIF_CONFIG_GET_PRIVATE (config);
- 	config->priv->file_override = g_key_file_new ();
-@@ -893,15 +893,14 @@ zif_config_init (ZifConfig *config)
- 				  G_CALLBACK (zif_config_file_monitor_cb), config);
+ 	/* make sure initialized */
+ 	zif_init ();
+@@ -941,22 +941,25 @@ zif_config_init (ZifConfig *config)
+ 				  config);
  
  	/* get info from RPM */
 -	rpmGetOsInfo (&value, NULL);
@@ -547,14 +602,30 @@
 -	if (g_strcmp0 (value, "i486") == 0 ||
 -	    g_strcmp0 (value, "i586") == 0 ||
 -	    g_strcmp0 (value, "i686") == 0)
--		value = "i386";
 +	if (strcmp (value, "i486") == 0 ||
 +	    strcmp (value, "i586") == 0 ||
-+	    strcmp (value, "i686") == 0)
-+		value= "i386";
++	    strcmp (value, "i686") == 0 ||
++	    strcmp (value, "athlon") == 0 ||
++	    strcmp (value, "pentium2") == 0 ||
++	    strcmp (value, "pentium3") == 0 ||
++	    strcmp (value, "pentium4") == 0)
+ 		value = "i386";
+-	if (g_strcmp0 (value, "armv7l") == 0 ||
+-	    g_strcmp0 (value, "armv6l") == 0 ||
+-	    g_strcmp0 (value, "armv5tejl") == 0 ||
+-	    g_strcmp0 (value, "armv5tel") == 0)
++	if (strcmp (value, "armv7l") == 0 ||
++	    strcmp (value, "armv6l") == 0 ||
++	    strcmp (value, "armv5tejl") == 0 ||
++	    strcmp (value, "armv5tel") == 0)
+ 		value = "arm";
+-	if (g_strcmp0 (value, "armv7hnl") == 0 ||
+-	    g_strcmp0 (value, "armv7hl") == 0)
++	if (strcmp (value, "armv7hnl") == 0 ||
++	    strcmp (value, "armv7hl") == 0)
+ 		value = "armhfp";
  	zif_config_set_default (config, "basearch", value);
  }
- 
 --- zif-0.2.3/examples/Makefile.am.orig	2011-06-25 18:29:24.000000000 +0200
 +++ zif-0.2.3/examples/Makefile.am	2013-11-19 21:08:44.966711548 +0100
 @@ -1,5 +1,6 @@
@@ -573,3 +644,53 @@
  	$(SQLITE_CFLAGS)				\
  	-DBINDIR=\"$(bindir)\"			 	\
  	-DDATADIR=\"$(datadir)\"			\
+--- zif-0.3.6/libzif/zif-state.c.orig	2013-05-08 09:33:04.000000000 +0200
++++ zif-0.3.6/libzif/zif-state.c	2013-11-20 19:51:19.633280630 +0100
+@@ -83,12 +83,15 @@
+ #include <glib-unix.h>
+ #endif
+ #include <signal.h>
+-#include <rpm/rpmsq.h>
+ 
+ #include "zif-marshal.h"
+ #include "zif-utils.h"
+ #include "zif-state-private.h"
+ 
++/* declared in private header rpmsq.h */
++typedef void (*rpmsqAction_t) (int signum, void * info, void * context);
++int rpmsqEnable(int signum, /*@null@*/ rpmsqAction_t handler);
++
+ #define ZIF_STATE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), ZIF_TYPE_STATE, ZifStatePrivate))
+ 
+ struct _ZifStatePrivate
+--- zif-0.3.6/libzif/zif-store.c.orig	2013-05-08 09:33:04.000000000 +0200
++++ zif-0.3.6/libzif/zif-store.c	2013-11-20 19:54:07.183273602 +0100
+@@ -34,7 +34,7 @@
+ #include <string.h>
+ 
+ #include <glib.h>
+-#include <rpm/rpmlib.h>
++#include <rpm/rpmmacro.h>
+ 
+ #include "zif-object-array.h"
+ #include "zif-package-array-private.h"
+@@ -1036,8 +1036,9 @@ zif_store_resolve_full_try (ZifStore *st
+ 	    ((flags & ZIF_STORE_RESOLVE_FLAG_USE_NAME_ARCH) > 0 ||
+ 	     (flags & ZIF_STORE_RESOLVE_FLAG_USE_NAME_VERSION_ARCH) > 0)) {
+ 
++		const char *ctmp;
+ 		/* get the native machine arch */
+-		rpmGetArchInfo (&tmp, NULL);
++		ctmp = rpmExpand("%{_target_cpu}", NULL);
+ 		j = g_strv_length (search);
+ 		search_native = g_new0 (gchar *, j + 1);
+ 		for (i = 0; i < j; i++) {
+@@ -1046,7 +1047,7 @@ zif_store_resolve_full_try (ZifStore *st
+ 			} else {
+ 				search_native[i] = g_strdup_printf ("%s.%s",
+ 								    search[i],
+-								    tmp);
++								    ctmp);
+ 			}
+ 		}
+ 	} else {
