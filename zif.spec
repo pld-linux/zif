@@ -2,7 +2,7 @@ Summary:	Simple wrapper for rpm and the Fedora package metadata
 Summary(pl.UTF-8):	Proste opakowanie dla rpm-a i metadanych pakietów Fedory
 Name:		zif
 Version:	0.3.6
-Release:	0.1
+Release:	0.2
 License:	GPL v2+
 Group:		Libraries
 Source0:	http://people.freedesktop.org/~hughsient/zif/releases/%{name}-%{version}.tar.xz

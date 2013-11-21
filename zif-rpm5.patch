@@ -14,7 +14,7 @@
  	rpmtd td;
  
 -	td = rpmtdNew ();
-+	td = malloc (sizeof (rpmtd));
++	td = malloc (sizeof (* td));
  	retval = headerGet (header, tag, td, HEADERGET_MINMEM);
  
  	if (retval != 1)
@@ -36,7 +36,7 @@
  	rpmtd td;
  
 -	td = rpmtdNew ();
-+	td = malloc (sizeof (rpmtd));
++	td = malloc (sizeof (* td));
  	retval = headerGet (header, tag, td, HEADERGET_MINMEM);
  	if (retval != 1)
  		goto out;
@@ -62,7 +62,7 @@
  	rpmtd td;
  
 -	td = rpmtdNew ();
-+	td = malloc (sizeof (rpmtd));
++	td = malloc (sizeof (* td));
  	retval = headerGet (header, RPMTAG_SIZE, td, HEADERGET_MINMEM);
  	if (retval != 1)
  		goto out;
@@ -80,7 +80,7 @@
  	guint i;
  
 -	td = rpmtdNew ();
-+	td = malloc (sizeof (rpmtd));
++	td = malloc (sizeof (* td));
  	retval = headerGet (header, tag, td, HEADERGET_MINMEM);
  	if (retval != 1)
  		goto out;
@@ -98,7 +98,7 @@
  	rpmtd td;
  
 -	td = rpmtdNew ();
-+	td = malloc (sizeof (rpmtd));
++	td = malloc (sizeof (* td));
  	retval = headerGet (header, tag, td, HEADERGET_DEFAULT);
  	if (retval != 1)
  		goto out;
