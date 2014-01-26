@@ -1,3 +1,4 @@
+# NOTE: no longer developed; some code lives in hawkey backend in PackageKit
 Summary:	Simple wrapper for rpm and the Fedora package metadata
 Summary(pl.UTF-8):	Proste opakowanie dla rpm-a i metadanych pakietów Fedory
 Name:		zif
