@@ -1,4 +1,8 @@
 # NOTE: no longer developed; some code lives in hawkey backend in PackageKit
+#
+# Conditional build:
+%bcond_with	rpm5	# RPM 5.x instead of rpm.org
+
 Summary:	Simple wrapper for rpm and the Fedora package metadata
 Summary(pl.UTF-8):	Proste opakowanie dla rpm-a i metadanych pakietów Fedory
 Name:		zif
@@ -6,11 +10,13 @@ Version:	0.3.6
 Release:	0.2
 License:	GPL v2+
 Group:		Libraries
-Source0:	http://people.freedesktop.org/~hughsient/zif/releases/%{name}-%{version}.tar.xz
+Source0:	https://people.freedesktop.org/~hughsient/zif/releases/%{name}-%{version}.tar.xz
 # Source0-md5:	fcec454a8d839cfe4aa9ee7b6e20ed15
 Patch0:		%{name}-rpm5.patch
 Patch1:		%{name}-link.patch
-URL:		http://people.freedesktop.org/~hughsient/zif/
+Patch2:		%{name}-xattr.patch
+Patch3:		%{name}-rpm4.14.patch
+URL:		https://people.freedesktop.org/~hughsient/zif/
 BuildRequires:	attr-devel
 BuildRequires:	autoconf >= 2.63
 BuildRequires:	automake >= 1:1.9
@@ -98,10 +104,16 @@ Bashowe dopełnianie parametrów dla polecenia zif.
 
 %prep
 %setup -q
+%if %{with rpm5}
 %patch0 -p1
+%else
+%patch3 -p1
+%endif
 %patch1 -p1
+%patch2 -p1
 
 %build
+%{__gtkdocize}
 %{__libtoolize}
 %{__aclocal} -I m4
 %{__autoconf}

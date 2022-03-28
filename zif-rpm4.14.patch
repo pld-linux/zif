@@ -1,0 +1,10 @@
+--- zif-0.3.6/libzif/zif-state.c.orig	2013-05-08 09:33:04.000000000 +0200
++++ zif-0.3.6/libzif/zif-state.c	2022-03-28 21:13:12.027458197 +0200
+@@ -1246,7 +1246,6 @@ zif_state_cancel_on_signal (ZifState *st
+ #if GLIB_CHECK_VERSION(2,29,19)
+ 	/* undo librpms attempt to steal SIGINT, and instead fail
+ 	 * the transaction in a nice way */
+-	rpmsqEnable (-SIGINT, NULL);
+ 	g_unix_signal_add (signum,
+ 			   zif_state_cancel_on_signal_cb,
+ 			   state->priv->cancellable);

@@ -1,0 +1,22 @@
+--- zif-0.3.6/configure.ac.orig	2022-03-28 20:22:46.743847565 +0200
++++ zif-0.3.6/configure.ac	2022-03-28 20:44:48.350021143 +0200
+@@ -130,7 +130,7 @@ PKG_CHECK_MODULES(SOUP, libsoup-2.4)
+ dnl ---------------------------------------------------------------------------
+ dnl - use xattr to speed up checksumming files using the mtime as a key
+ dnl ---------------------------------------------------------------------------
+-AC_CHECK_HEADERS([attr/xattr.h],
++AC_CHECK_HEADERS([sys/xattr.h],
+ 		 HAVE_XATTR_H="yes",
+ 		 HAVE_XATTR_H="no")
+ if test "x$HAVE_XATTR_H" = "xno"; then
+--- zif-0.3.6/libzif/zif-md.c.orig	2013-01-10 14:22:35.000000000 +0100
++++ zif-0.3.6/libzif/zif-md.c	2022-03-28 20:51:50.314401833 +0200
+@@ -37,7 +37,7 @@
+ #include <string.h>
+ #include <stdlib.h>
+ #include <sys/types.h>
+-#include <attr/xattr.h>
++#include <sys/xattr.h>
+ 
+ #include "zif-config.h"
+ #include "zif-md.h"
